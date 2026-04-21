@@ -7,6 +7,7 @@ import { User } from './database/entities/user.entity';
 import { Restaurant } from './database/entities/restaurant.entity';
 import { Table } from './database/entities/table.entity';
 import { WaitlistEntry } from './database/entities/waitlist-entry.entity';
+import { WaitlistModule } from './waitlist/waitlis.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { WaitlistEntry } from './database/entities/waitlist-entry.entity';
 
     AuthModule,
     RestaurantsModule,
+    WaitlistModule,
   ],
 })
 export class AppModule {}
