@@ -11,6 +11,7 @@ import { Restaurant } from '../database/entities/restaurant.entity';
 import { User } from '../database/entities/user.entity';
 import { CreateWaitlistEntryDto } from './dto/create-waitlist-entry.dto';
 import { WaitlistGateway } from './waitlist.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class WaitlistService {
@@ -20,6 +21,7 @@ export class WaitlistService {
     @InjectRepository(Restaurant)
     private readonly restaurantRepo: Repository<Restaurant>,
     private readonly waitlistGateway: WaitlistGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ─── Unirse a la fila (ruta pública) ────────────────────────────────────────
@@ -91,6 +93,13 @@ export class WaitlistService {
     entry.calledAt = new Date();
     const saved = await this.waitlistRepo.save(entry);
 
+    // Enviamos el SMS — en desarrollo aparece en consola (modo mock).
+    const message = this.notificationsService.getCalledMessage(
+      entry.guestName,
+      entry.restaurant.name,
+    );
+    await this.notificationsService.sendSms(entry.phone, message);
+
     await this.waitlistGateway.emitWaitlistUpdate(entry.restaurant.id);
     await this.waitlistGateway.emitEntryUpdated(entry.restaurant.id, saved);
 
@@ -100,47 +109,66 @@ export class WaitlistService {
   // ─── Sentar a una party ──────────────────────────────────────────────────────
 
   async seatEntry(entryId: string, currentUser: User): Promise<WaitlistEntry> {
+  const entry = await this.findEntryOrFail(entryId);
+
+  this.verifyAccess(currentUser, entry.restaurant.id);
+
+  if (entry.status !== WaitlistEntryStatus.CALLED) {
+    throw new BadRequestException('Solo se puede sentar una party que fue llamada');
+  }
+
+  const currentPosition = entry.position;
+
+  entry.status = WaitlistEntryStatus.SEATED;
+  entry.seatedAt = new Date();
+  entry.position = 0;
+  const saved = await this.waitlistRepo.save(entry);
+
+  await this.reorderAfter(entry.restaurant.id, currentPosition);
+  await this.waitlistGateway.emitWaitlistUpdate(entry.restaurant.id);
+
+  return saved;
+}
+
+  // ─── Cancelar una entrada ────────────────────────────────────────────────────
+
+  async cancelEntry(entryId: string, currentUser?: User): Promise<WaitlistEntry> {
     const entry = await this.findEntryOrFail(entryId);
 
-    this.verifyAccess(currentUser, entry.restaurant.id);
-
-    if (entry.status !== WaitlistEntryStatus.CALLED) {
-      throw new BadRequestException('Solo se puede sentar una party que fue llamada');
+    if (currentUser) {
+      this.verifyAccess(currentUser, entry.restaurant.id);
     }
 
-    entry.status = WaitlistEntryStatus.SEATED;
-    entry.seatedAt = new Date();
+    if (entry.status === WaitlistEntryStatus.SEATED) {
+      throw new BadRequestException('No se puede cancelar una entrada ya sentada');
+    }
+
+    const previousStatus = entry.status;
+    const previousPosition = entry.position;
+
+    entry.status = WaitlistEntryStatus.CANCELLED;
     const saved = await this.waitlistRepo.save(entry);
 
-    await this.reorderAfter(entry.restaurant.id, entry.position);
+    if (previousStatus === WaitlistEntryStatus.WAITING) {
+      await this.reorderAfter(entry.restaurant.id, previousPosition);
+    }
 
     await this.waitlistGateway.emitWaitlistUpdate(entry.restaurant.id);
 
     return saved;
   }
 
-  // ─── Cancelar una entrada ────────────────────────────────────────────────────
-
- async cancelEntry(entryId: string, currentUser?: User): Promise<WaitlistEntry> {
+  async finishEntry(entryId: string, currentUser: User): Promise<WaitlistEntry> {
   const entry = await this.findEntryOrFail(entryId);
 
-  if (currentUser) {
-    this.verifyAccess(currentUser, entry.restaurant.id);
+  this.verifyAccess(currentUser, entry.restaurant.id);
+
+  if (entry.status !== WaitlistEntryStatus.SEATED) {
+    throw new BadRequestException('Solo se puede finalizar una party sentada');
   }
 
-  if (entry.status === WaitlistEntryStatus.SEATED) {
-    throw new BadRequestException('No se puede cancelar una entrada ya sentada');
-  }
-
-  const previousStatus = entry.status;
-  const previousPosition = entry.position;
-
-  entry.status = WaitlistEntryStatus.CANCELLED;
+  entry.status = WaitlistEntryStatus.FINISHED;
   const saved = await this.waitlistRepo.save(entry);
-
-  if (previousStatus === WaitlistEntryStatus.WAITING) {
-    await this.reorderAfter(entry.restaurant.id, previousPosition);
-  }
 
   await this.waitlistGateway.emitWaitlistUpdate(entry.restaurant.id);
 

@@ -12,7 +12,8 @@ export enum WaitlistEntryStatus {
   WAITING = 'waiting',     
   CALLED = 'called',       
   SEATED = 'seated',       
-  CANCELLED = 'cancelled', 
+  CANCELLED = 'cancelled',
+  FINISHED   = 'finished' 
 }
 
 @Entity('waitlist_entries')
@@ -36,7 +37,7 @@ export class WaitlistEntry {
   })
   status: WaitlistEntryStatus;
 
-  @Column()
+  @Column({ default: 0 })
   position: number;
 
   @CreateDateColumn()

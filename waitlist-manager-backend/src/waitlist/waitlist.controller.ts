@@ -51,4 +51,10 @@ export class WaitlistController {
   ) {
     return this.waitlistService.cancelEntry(id, user);
   }
+
+  @Patch(':id/finish')
+    @UseGuards(JwtGuard)
+    finish(@Param('id') id: string, @CurrentUser() user: User) {
+  return this.waitlistService.finishEntry(id, user);
+}
 }

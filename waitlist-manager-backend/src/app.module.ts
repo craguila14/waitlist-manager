@@ -3,11 +3,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { RestaurantsModule } from './restaurants/restaurants.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { User } from './database/entities/user.entity';
 import { Restaurant } from './database/entities/restaurant.entity';
 import { Table } from './database/entities/table.entity';
 import { WaitlistEntry } from './database/entities/waitlist-entry.entity';
-import { WaitlistModule } from './waitlist/waitlis.module';
+import { WaitlistModule } from './waitlist/waitlist.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { WaitlistModule } from './waitlist/waitlis.module';
     AuthModule,
     RestaurantsModule,
     WaitlistModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}
