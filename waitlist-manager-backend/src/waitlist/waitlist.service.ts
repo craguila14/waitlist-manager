@@ -66,17 +66,18 @@ export class WaitlistService {
 
   // ─── Ver la fila completa (para el dashboard) ────────────────────────────────
 
-  async getWaitlist(restaurantId: string, currentUser: User): Promise<WaitlistEntry[]> {
-    this.verifyAccess(currentUser, restaurantId);
+async getWaitlist(restaurantId: string, currentUser: User): Promise<WaitlistEntry[]> {
+  this.verifyAccess(currentUser, restaurantId);
 
-    return this.waitlistRepo.find({
-      where: {
-        restaurant: { id: restaurantId },
-        status: WaitlistEntryStatus.WAITING,
-      },
-      order: { position: 'ASC' },
-    });
-  }
+  return this.waitlistRepo.find({
+    where: [
+      { restaurant: { id: restaurantId }, status: WaitlistEntryStatus.WAITING },
+      { restaurant: { id: restaurantId }, status: WaitlistEntryStatus.CALLED },
+      { restaurant: { id: restaurantId }, status: WaitlistEntryStatus.SEATED },
+    ],
+    order: { position: 'ASC' },
+  });
+}
 
   // ─── Llamar a una party ──────────────────────────────────────────────────────
 

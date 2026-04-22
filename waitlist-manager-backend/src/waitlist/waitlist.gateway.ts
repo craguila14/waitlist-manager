@@ -53,17 +53,18 @@ export class WaitlistGateway implements OnGatewayConnection, OnGatewayDisconnect
     client.leave(`restaurant:${restaurantId}`);
   }
 
-  async emitWaitlistUpdate(restaurantId: string): Promise<void> {
-    const waitlist = await this.waitlistRepo.find({
-      where: {
-        restaurant: { id: restaurantId },
-        status: WaitlistEntryStatus.WAITING,
-      },
-      order: { position: 'ASC' },
-    });
+async emitWaitlistUpdate(restaurantId: string): Promise<void> {
+  const waitlist = await this.waitlistRepo.find({
+    where: [
+      { restaurant: { id: restaurantId }, status: WaitlistEntryStatus.WAITING },
+      { restaurant: { id: restaurantId }, status: WaitlistEntryStatus.CALLED },
+      { restaurant: { id: restaurantId }, status: WaitlistEntryStatus.SEATED },
+    ],
+    order: { position: 'ASC' },
+  });
 
-    this.server.to(`restaurant:${restaurantId}`).emit('waitlistUpdated', waitlist);
-  }
+  this.server.to(`restaurant:${restaurantId}`).emit('waitlistUpdated', waitlist);
+}
 
   async emitEntryUpdated(restaurantId: string, entry: WaitlistEntry): Promise<void> {
     this.server.to(`restaurant:${restaurantId}`).emit('entryUpdated', entry);
