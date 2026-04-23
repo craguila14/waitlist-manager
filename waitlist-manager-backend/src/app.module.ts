@@ -23,7 +23,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
         entities: [User, Restaurant, Table, WaitlistEntry],
-        synchronize: configService.get<string>('NODE_ENV') !== 'production',
+        synchronize: true,
         logging: configService.get<string>('NODE_ENV') === 'development',
       }),
     }),

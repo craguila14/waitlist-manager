@@ -135,9 +135,9 @@ function WaitlistRow({
   isActioning: boolean;
   onAction: (id: string, action: 'call' | 'seat' | 'finish' | 'cancel') => void;
 }) {
-  const waitMinutes = Math.floor(
-    (Date.now() - new Date(entry.joinedAt).getTime()) / 60000,
-  );
+const waitMinutes = Math.max(0, Math.floor(
+  (new Date().getTime() - new Date(entry.joinedAt).getTime()) / 60000,
+));
 
   return (
     <tr style={styles.tr}>
