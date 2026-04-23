@@ -15,10 +15,23 @@ async function bootstrap() {
     }),
   );
 
-  app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
-    credentials: true,
-  });
+ app.enableCors({
+  origin: (origin, callback) => {
+    const allowed = [
+      'http://localhost:3001',
+      process.env.FRONTEND_URL,
+    ];
+
+    const isVercel = origin?.endsWith('.vercel.app');
+
+    if (!origin || isVercel || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true,
+});
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
