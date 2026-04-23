@@ -206,12 +206,12 @@ export default function LandingPage() {
       <footer style={s.footer}>
         <p style={s.footerText}>
           Construido por{' '}
-          <a href="https://github.com/tu-usuario" style={s.footerLink}>
-            Tu Nombre
+          <a href="https://github.com/craguila14" style={s.footerLink}>
+            Constanza Águila
           </a>{' '}
           · Proyecto de portafolio ·{' '}
           <a
-            href="https://github.com/tu-usuario/waitlist-manager"
+            href="https://github.com/craguila14/waitlist-manager"
             style={s.footerLink}
           >
             GitHub
