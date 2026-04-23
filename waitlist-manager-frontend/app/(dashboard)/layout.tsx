@@ -29,10 +29,10 @@ export default function DashboardLayout({
   }
 
   const navItems = [
-    { href: '/dashboard/waitlist', label: 'Fila de espera' },
-    { href: '/dashboard/tables', label: 'Mesas' },
+    { href: '/waitlist', label: 'Fila de espera' },
+    { href: '/tables', label: 'Mesas' },
     ...(user.role === 'owner'
-      ? [{ href: '/dashboard/settings', label: 'Configuración' }]
+      ? [{ href: '/settings', label: 'Configuración' }]
       : []),
   ];
 
@@ -162,4 +162,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '0.8rem',
     cursor: 'pointer',
   },
+  main: {
+  flex: 1,
+  overflow: 'auto',
+  minWidth: 0,
+},
 };

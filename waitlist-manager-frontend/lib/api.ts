@@ -163,6 +163,7 @@ export interface CreateRestaurantData {
   name: string;
   phone?: string;
   estimatedWaitMinutes?: number;
+  isOpen?: boolean;
 }
 
 export interface CreateTableData {

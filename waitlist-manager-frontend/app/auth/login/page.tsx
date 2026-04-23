@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 
-export default function LoginPage() {
+function LoginForm() {
   const { login } = useAuth();
+  const searchParams = useSearchParams();
+  const justRegistered = searchParams.get('registered') === 'true';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,7 +33,18 @@ export default function LoginPage() {
     <div style={styles.page}>
       <div style={styles.card}>
         <h1 style={styles.title}>Waitlist Manager</h1>
-        <p style={styles.subtitle}>Inicia sesión para continuar</p>
+        <p style={styles.subtitle}>
+          ¿No tienes cuenta?{' '}
+          <Link href="/auth/register" style={styles.link}>
+            Regístrate
+          </Link>
+        </p>
+
+        {justRegistered && (
+          <div style={styles.success}>
+            Cuenta creada correctamente. Inicia sesión para continuar.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.field}>
@@ -74,6 +90,14 @@ export default function LoginPage() {
   );
 }
 
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: '100vh',
@@ -91,31 +115,20 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     maxWidth: '400px',
   },
-  title: {
-    fontSize: '1.5rem',
-    fontWeight: 600,
-    marginBottom: '0.25rem',
-  },
-  subtitle: {
-    color: '#6b7280',
-    fontSize: '0.9rem',
-    marginBottom: '1.5rem',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.375rem',
-  },
-  label: {
+  title: { fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.25rem' },
+  subtitle: { color: '#6b7280', fontSize: '0.875rem', marginBottom: '1.5rem' },
+  link: { color: '#111827', fontWeight: 500, textDecoration: 'underline' },
+  success: {
+    color: '#16a34a',
     fontSize: '0.875rem',
-    fontWeight: 500,
-    color: '#374151',
+    padding: '0.5rem 0.75rem',
+    background: '#f0fdf4',
+    borderRadius: '6px',
+    marginBottom: '1rem',
   },
+  form: { display: 'flex', flexDirection: 'column', gap: '1rem' },
+  field: { display: 'flex', flexDirection: 'column', gap: '0.375rem' },
+  label: { fontSize: '0.875rem', fontWeight: 500, color: '#374151' },
   input: {
     padding: '0.625rem 0.75rem',
     border: '1px solid #d1d5db',
