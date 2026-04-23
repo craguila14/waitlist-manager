@@ -1,6 +1,6 @@
 # Waitlist Manager 🍽️
 
-Sistema de gestión de filas de espera en tiempo real para restaurantes. Los clientes se unen a la fila escaneando un QR, y el staff gestiona las mesas desde un dashboard que se actualiza instantáneamente sin recargar la página.
+Sistema de gestión de filas de espera en tiempo real para restaurantes. Los clientes se unen escaneando un QR, y el staff gestiona las mesas desde un dashboard que se actualiza instantáneamente sin recargar la página.
 
 > Proyecto de portafolio construido con Next.js + NestJS para demostrar arquitectura fullstack con WebSockets, JWT auth y notificaciones SMS.
 
@@ -8,12 +8,12 @@ Sistema de gestión de filas de espera en tiempo real para restaurantes. Los cli
 
 ## ¿Qué problema resuelve?
 
-Los restaurantes con fila de espera suelen manejarla con papel y lápiz o llamando el nombre en voz alta. Este sistema digitaliza ese flujo:
+Los restaurantes con fila de espera suelen manejarla con papel y lápiz. Este sistema digitaliza ese flujo:
 
 - El cliente escanea un QR en la entrada → completa un formulario simple → queda en la fila
-- El host ve la fila en tiempo real en una tablet → llama a la mesa con un clic
+- El host ve la fila en tiempo real → llama a la mesa con un clic
 - El cliente recibe un SMS cuando su mesa está lista
-- Si el cliente cancela o no llega, la fila se reordena automáticamente
+- Si el cliente cancela, la fila se reordena automáticamente
 
 ---
 
@@ -21,126 +21,77 @@ Los restaurantes con fila de espera suelen manejarla con papel y lápiz o llaman
 
 | Capa | Tecnología | Por qué |
 |---|---|---|
-| Frontend | Next.js 14 (App Router) | SSR para la página pública del cliente, Client Components para el dashboard en tiempo real |
+| Frontend | Next.js 15 (App Router) | SSR para la página pública, Client Components para el dashboard en tiempo real |
 | Backend | NestJS | Arquitectura modular, WebSocket Gateway nativo, decoradores para guards y roles |
-| Base de datos | PostgreSQL + TypeORM | Relaciones claras entre Restaurant, Table y WaitlistEntry |
-| Tiempo real | Socket.io (NestJS Gateway) | Rooms por restaurante, el dashboard se actualiza sin polling |
-| Autenticación | JWT + Guards de NestJS | Roles: OWNER y HOST con acceso diferenciado |
-| Notificaciones | Twilio SMS | El cliente recibe SMS cuando su mesa está lista |
-| Contenedor | Docker Compose | PostgreSQL + Redis listos con un comando |
+| Base de datos | PostgreSQL + TypeORM | Relaciones claras, enums reales, sincronización automática en desarrollo |
+| Tiempo real | Socket.io (NestJS Gateway) | Rooms por restaurante, actualización sin polling |
+| Autenticación | JWT + Guards de NestJS | Roles OWNER y HOST con acceso diferenciado |
+| Notificaciones | Twilio SMS | SMS al cliente cuando su mesa está lista. Modo mock en desarrollo |
+| Contenedores | Docker Compose | Un solo comando levanta todo el proyecto |
 
 ---
 
-## Funcionalidades
+## Correr con Docker (recomendado)
 
-### Para el cliente (página pública — sin login)
-- Escanea QR único por restaurante
-- Completa formulario: nombre, tamaño del grupo, teléfono
-- Ve su posición en la fila en tiempo real
-- Recibe SMS cuando su mesa está lista
-- Puede cancelar su lugar desde el link del SMS
+### Requisitos
+- Docker y Docker Compose instalados
 
-### Para el host / staff (dashboard protegido)
-- Ve la fila completa ordenada por tiempo de espera
-- Llama a una party con un clic (dispara el SMS)
-- Marca una party como sentada o cancelada
-- Ve el estado de cada mesa (disponible / ocupada / reservada)
-- Todo se actualiza en tiempo real vía WebSockets
+### Un solo comando
 
-### Para el dueño (rol OWNER)
-- Gestiona el restaurante (nombre, capacidad, horarios)
-- Agrega y edita mesas
-- Agrega cuentas de staff (rol HOST)
-- Ve métricas básicas: tiempo de espera promedio, parties atendidas hoy
-
----
-
-## Estructura del proyecto
-
-```
-waitlist-manager/
-├── backend/          # NestJS API
-│   ├── src/
-│   │   ├── auth/
-│   │   ├── restaurants/
-│   │   ├── tables/
-│   │   ├── waitlist/
-│   │   └── notifications/
-│   └── ...
-├── frontend/         # Next.js App Router
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── (dashboard)/    # rutas protegidas para staff
-│   │   │   └── join/[slug]/    # página pública para clientes
-│   │   └── ...
-│   └── ...
-└── docker-compose.yml
+```bash
+git clone https://github.com/tu-usuario/waitlist-manager
+cd waitlist-manager
+docker-compose up
 ```
 
+El frontend estará en `http://localhost:3001`  
+El backend estará en `http://localhost:3000`  
+PostgreSQL en `localhost:5432`
+
+> Las tablas se crean automáticamente al arrancar gracias a `synchronize: true` de TypeORM.
+
 ---
 
-## Correr el proyecto localmente
+## Correr manualmente (desarrollo)
 
 ### Requisitos
 - Node.js 20+
-- Docker y Docker Compose
-- Cuenta de Twilio (para SMS — opcional en desarrollo)
-
-### Pasos
+- PostgreSQL corriendo localmente
 
 ```bash
-# 1. Clonar el repo
-git clone https://github.com/tu-usuario/waitlist-manager
-cd waitlist-manager
-
-# 2. Levantar PostgreSQL y Redis con Docker
-docker-compose up -d
-
-# 3. Configurar variables de entorno
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
-# editar los archivos .env con tus credenciales
-
-# 4. Instalar dependencias y correr el backend
-cd backend
+# 1. Backend
+cd waitlist-manager-backend
 npm install
-npm run migration:run
+cp .env.example .env   # edita con tus credenciales
 npm run start:dev
 
-# 5. En otra terminal, correr el frontend
-cd frontend
+# 2. Frontend (en otra terminal)
+cd waitlist-manager-frontend
 npm install
 npm run dev
 ```
-
-El backend corre en `http://localhost:3000`  
-El frontend corre en `http://localhost:3001`
 
 ---
 
 ## Variables de entorno
 
-### Backend (`backend/.env`)
+### Backend (`waitlist-manager-backend/.env`)
 
 ```env
-# Base de datos
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/waitlist_db
-
-# JWT
-JWT_SECRET=tu_secreto_muy_largo_aqui
+JWT_SECRET=un_secreto_largo_y_aleatorio
 JWT_EXPIRES_IN=7d
+PORT=3000
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3001
 
-# Twilio (opcional en desarrollo)
+# Twilio — opcional. Sin estas variables los SMS se loguean en consola.
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxx
 TWILIO_PHONE_NUMBER=+1234567890
-
-# App
-PORT=3000
-FRONTEND_URL=http://localhost:3001
 ```
 
-### Frontend (`frontend/.env.local`)
+### Frontend (`waitlist-manager-frontend/.env.local`)
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3000
@@ -149,33 +100,72 @@ NEXT_PUBLIC_WS_URL=http://localhost:3000
 
 ---
 
-## Flujo técnico completo
+## Estructura del proyecto
 
 ```
-Cliente escanea QR
-  → GET /restaurants/:slug        (datos del restaurante)
-  → POST /waitlist                (se une a la fila)
-  → WS joinRoom restaurant:id     (escucha updates de su posición)
-
-Host en dashboard
-  → WS joinRoom restaurant:id     (recibe updates en tiempo real)
-  → POST /waitlist/:id/call       (llama a una party)
-    → NotificationsService        (envía SMS por Twilio)
-    → WS emit waitlistUpdated     (actualiza todos los clientes conectados)
+waitlist-manager/
+├── docker-compose.yml
+├── README.md
+├── ARCHITECTURE.md
+├── waitlist-manager-backend/
+│   ├── Dockerfile
+│   └── src/
+│       ├── auth/
+│       ├── restaurants/
+│       ├── waitlist/
+│       ├── notifications/
+│       └── database/
+└── waitlist-manager-frontend/
+    ├── Dockerfile
+    └── src/
+        ├── app/
+        │   ├── page.tsx              # landing
+        │   ├── auth/
+        │   ├── (dashboard)/
+        │   └── (public)/join/[slug]/
+        ├── context/
+        ├── hooks/
+        └── lib/
 ```
 
 ---
 
-## Decisiones técnicas relevantes
+## Flujo técnico
+
+```
+Cliente escanea QR
+  → GET /restaurants/slug/:slug     (datos del restaurante)
+  → POST /waitlist                  (se une a la fila)
+  → WS joinRoom restaurant:id       (escucha su posición en tiempo real)
+
+Host en dashboard
+  → WS joinRoom restaurant:id       (recibe updates en tiempo real)
+  → PATCH /waitlist/:id/call        (llama a una party)
+    → NotificationsService          (envía SMS por Twilio)
+    → WS emit waitlistUpdated       (actualiza todos los clientes conectados)
+```
+
+---
+
+## Decisiones técnicas
 
 **¿Por qué Socket.io y no WebSocket nativo?**  
-Socket.io maneja reconexión automática, rooms, y fallback a long-polling. Para un portafolio es más práctico y el NestJS Gateway lo integra nativamente con `@WebSocketGateway`.
+Rooms nativos, reconexión automática y fallback a long-polling. NestJS lo integra con `@WebSocketGateway`.
 
-**¿Por qué JWT y no sessions?**  
-El backend es stateless — cualquier instancia puede validar un token sin consultar estado compartido. En producción esto facilita escalar horizontalmente.
+**¿Por qué JWT stateless?**  
+El backend no necesita consultar estado para validar un token. Escala horizontalmente sin Redis.
 
-**¿Por qué roles OWNER y HOST separados?**  
-Principio de mínimo privilegio: el staff solo puede gestionar la fila, no modificar la configuración del restaurante. Esto también hace el sistema más realista y demuestra conocimiento de RBAC.
+**¿Por qué reordenamiento atómico?**  
+Una sola query `UPDATE ... SET position = position - 1` evita race conditions cuando múltiples hosts actúan simultáneamente.
+
+---
+
+## Mejoras futuras
+
+- Refresh tokens con rotación
+- Dashboard de métricas con IA (análisis de la noche, hora pico, tiempo promedio)
+- Tests unitarios y e2e
+- Endpoint `/auth/me` para refrescar el usuario sin hacer logout
 
 ---
 

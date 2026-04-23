@@ -1,0 +1,60 @@
+services:
+
+  # ── Base de datos ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: waitlist_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: waitlist_db
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend NestJS ───────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./waitlist-manager-backend
+      dockerfile: Dockerfile
+    container_name: waitlist_backend
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/waitlist_db
+      JWT_SECRET: cambia_esto_en_produccion_por_un_secreto_seguro
+      JWT_EXPIRES_IN: 7d
+      NODE_ENV: production
+      PORT: 3000
+      FRONTEND_URL: http://localhost:3001
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Frontend Next.js ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./waitlist-manager-frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3000
+        NEXT_PUBLIC_WS_URL: http://localhost:3000
+    container_name: waitlist_frontend
+    ports:
+      - '3001:3001'
+    environment:
+      PORT: 3001
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
